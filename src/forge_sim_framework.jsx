@@ -14,67 +14,416 @@ const BLANK_WORLD = {
 
 // ─── DEFAULT FORGE UNITS WORLD ────────────────────────────────────────────────
 const DEFAULT_WORLD = {
-  meta: { title: "The Forge Units", campaign: "Ironhoem Campaign", system: "D&D 5e", created: new Date().toISOString(), version: "2.0" },
+  meta: {
+    title: "The Forge Units",
+    campaign: "Ironhoem Campaign",
+    system: "D&D 5e",
+    created: new Date().toISOString(),
+    version: "2.0",
+    lore: "Twelve warforged soldiers created in Ironhoem to be immune to undead corruption. The official mission: cultural observation. The real mission: intelligence gathering for dwarven expansion. Year 0 saw the Creator Massacre — half the founding team died in circumstances that remain disputed. One unit was exiled. The rest were deployed across the world. Now the undead are rising again, and old fractures are reopening."
+  },
   factions: [
-    { id: "f1", name: "Loyalist",  color: "#ef4444", desc: "Uphold the original directive" },
-    { id: "f2", name: "Neutral",   color: "#3b82f6", desc: "Uncommitted or wavering" },
-    { id: "f3", name: "Dissenter", color: "#22c55e", desc: "Oppose or subvert authority" }
+    { id: "f1", name: "Loyalist",  color: "#ef4444", desc: "Uphold Nido's authority and the original directive" },
+    { id: "f2", name: "Neutral",   color: "#3b82f6", desc: "Uncommitted — watching, waiting, or protecting themselves" },
+    { id: "f3", name: "Dissenter", color: "#22c55e", desc: "Oppose the official narrative — seek truth or justice" },
+    { id: "f4", name: "Creator",   color: "#f59e0b", desc: "The founding artificers of the Forge Unit project (NPCs)" }
   ],
   customFields: [
-    { id: "cf1", label: "Psych Profile",       type: "select", options: ["Stable","Fragile","Volatile","Unknown"] },
-    { id: "cf2", label: "Directive Clearance", type: "select", options: ["Full","Partial","Revoked","Sealed"] },
-    { id: "cf3", label: "Combat Rating",        type: "number" }
+    { id: "cf1",  label: "Designation (True Name)", type: "text" },
+    { id: "cf2",  label: "Animal Symbol",            type: "text" },
+    { id: "cf3",  label: "Age (Years Active)",       type: "number" },
+    { id: "cf4",  label: "Current Location",         type: "text" },
+    { id: "cf5",  label: "Combat Role",              type: "select", options: ["Assault","Support","Recon","Command","Siege","Medical","Diplomatic","Skirmisher","Guardian","Broker","Watcher","Exile"] },
+    { id: "cf6",  label: "Psych Profile",            type: "select", options: ["Stable","Fragile","Volatile","Dissociating","Unknown"] },
+    { id: "cf7",  label: "Primary Trauma",           type: "text" },
+    { id: "cf8",  label: "Core Motivation",          type: "text" },
+    { id: "cf9",  label: "Loyalty Score",            type: "number" },
+    { id: "cf10", label: "Suspicion Score",          type: "number" },
+    { id: "cf11", label: "Stress Score",             type: "number" },
+    { id: "cf12", label: "Directive Clearance",      type: "select", options: ["Full","Partial","Revoked","Sealed","Unknown"] },
+    { id: "cf13", label: "Fallen Crown Exposure",    type: "select", options: ["None","Partial","Suspected","Confirmed","Carrier"] },
+    { id: "cf14", label: "Year 7 Knowledge",         type: "select", options: ["None","Official Only","Partial Truth","Suspects More","Knows Full Truth"] },
+    { id: "cf15", label: "Active Goal",              type: "text" },
+    { id: "cf16", label: "Hidden Goal",              type: "text" }
   ],
   characters: [
-    { id: 1,  name: "Nido",   faction: "f1", role: "Leader",    status: "active",  hp: 85, maxHp: 85, notes: "Commander-class unit. Issued Avren's exile. Carries sealed directive override.", secrets: "Received direct orders from an unknown third party before exile decision. May have been manipulated.", tags: ["commander","sealed-directive"], order: 0,  custom: { cf1:"Stable",   cf2:"Full",    cf3:9 } },
-    { id: 2,  name: "Sera",   faction: "f1", role: "Operative", status: "active",  hp: 72, maxHp: 72, notes: "Highly loyal to Nido. Suspicious of Dissenter movements.", secrets: "Knows more about Year 7 massacre than she admits. Survivor guilt.", tags: ["loyal","field-veteran"], order: 1, custom: { cf1:"Stable",   cf2:"Full",    cf3:7 } },
-    { id: 3,  name: "Utnom",  faction: "f1", role: "Operative", status: "active",  hp: 68, maxHp: 68, notes: "Quiet enforcer. Acts on orders without question.", secrets: "Was present during Avren's anomaly but filed a redacted report.", tags: ["enforcer","compliant"], order: 2, custom: { cf1:"Stable",   cf2:"Partial", cf3:6 } },
-    { id: 4,  name: "Oyne",   faction: "f1", role: "Operative", status: "active",  hp: 74, maxHp: 74, notes: "Openly hostile to Dissenters. Personal rivalry with Avren and Uram.", secrets: "Attempting to locate Avren's exile location.", tags: ["aggressive"], order: 3, custom: { cf1:"Volatile", cf2:"Full",    cf3:8 } },
-    { id: 5,  name: "Annana", faction: "f1", role: "Support",   status: "active",  hp: 60, maxHp: 60, notes: "Medic-class unit. Close to Oyne.", secrets: "Secretly treating Neutral-faction units. Loyalty is pragmatic.", tags: ["medic","pragmatic"], order: 4, custom: { cf1:"Stable",   cf2:"Partial", cf3:4 } },
-    { id: 6,  name: "Sorda",  faction: "f2", role: "Broker",    status: "active",  hp: 65, maxHp: 65, notes: "Information broker. Sells intel to both sides.", secrets: "Has contact with an external party entirely outside the Forge network.", tags: ["broker","duplicitous"], order: 5, custom: { cf1:"Unknown",  cf2:"Revoked", cf3:5 } },
-    { id: 7,  name: "Nami",   faction: "f2", role: "Watcher",   status: "active",  hp: 70, maxHp: 70, notes: "Observer and archivist. Records everything.", secrets: "Holds a complete unredacted account of Year 7. Has never shared it.", tags: ["archivist","key-lore"], order: 6, custom: { cf1:"Stable",   cf2:"Partial", cf3:3 } },
-    { id: 8,  name: "Atak",   faction: "f2", role: "Watcher",   status: "active",  hp: 55, maxHp: 55, notes: "Passive and withdrawn. Avoids taking sides.", secrets: "Was closest to Avren before exile. Still corresponds covertly.", tags: ["withdrawn"], order: 7, custom: { cf1:"Fragile",  cf2:"Partial", cf3:3 } },
-    { id: 9,  name: "Avren",  faction: "f3", role: "Exile",     status: "exiled",  hp: 40, maxHp: 80, notes: "Exiled Year 8 by Nido. Memory compromised. Anomalous field behavior.", secrets: "The anomaly was deliberate refusal of orders. Avren remembers only fragments.", tags: ["exile","anomaly","key-character"], order: 8, custom: { cf1:"Fragile",  cf2:"Revoked", cf3:7 } },
-    { id: 10, name: "Atihan", faction: "f3", role: "Operative", status: "active",  hp: 66, maxHp: 66, notes: "Avren loyalist. Believes Nido acted unjustly.", secrets: "Actively recruiting Neutral units to the Dissenter cause.", tags: ["recruiter"], order: 9, custom: { cf1:"Volatile", cf2:"Revoked", cf3:6 } },
-    { id: 11, name: "Uram",   faction: "f3", role: "Strategist",status: "active",  hp: 78, maxHp: 78, notes: "Intellectual core of Dissenters. Suspicious of Loyalist histories.", secrets: "Has pieced together that Year 7 was politically engineered.", tags: ["strategist","truth-seeker","key-character"], order: 10, custom: { cf1:"Stable",   cf2:"Revoked", cf3:8 } },
-    { id: 12, name: "Tetas",  faction: "f3", role: "Operative", status: "wounded", hp: 22, maxHp: 66, notes: "Aggressive and impulsive. Wounded in recent skirmish.", secrets: "Was manipulated by Sorda into the skirmish.", tags: ["impulsive","wounded"], order: 11, custom: { cf1:"Volatile", cf2:"Revoked", cf3:5 } }
+    {
+      id: 1, name: "Sera", faction: "f1", role: "Unit 01 · Eldest Sibling · Assault",
+      status: "active", hp: 72, maxHp: 72,
+      notes: "First of the Forge Units. Baseline architecture for all others. 9 years active — the eldest by a full year. Assumed unofficial eldest-sibling role during the Family Years. Stationed in Ironhoem for military leadership training. Highly loyal to Nido. Visibly uncomfortable with Dissenter arguments she cannot fully refute.",
+      secrets: "Was present at Year 0 and saw more than her official report states. Survivor guilt is deep and structurally shapes her loyalty — if she admitted the truth, she would have to confront that she chose institutional survival over justice. She has not confronted this.",
+      tags: ["eldest","baseline-architecture","year-0-survivor","military-leader","loyalist-anchor"],
+      order: 0,
+      custom: {
+        cf1:"Ares", cf2:"Unknown", cf3:9, cf4:"Ironhoem",
+        cf5:"Assault", cf6:"Stable", cf7:"Year 0 — chose silence over truth",
+        cf8:"Protect the institution she was built to serve",
+        cf9:92, cf10:18, cf11:34,
+        cf12:"Full", cf13:"None", cf14:"Partial Truth",
+        cf15:"Maintain Loyalist cohesion and suppress Dissenter organizing",
+        cf16:"Avoid ever being asked to testify about Year 0"
+      }
+    },
+    {
+      id: 2, name: "Sorda", faction: "f2", role: "Unit 02 · Guardian · Information Broker",
+      status: "active", hp: 65, maxHp: 65,
+      notes: "Second unit activated, 8 years active. Designed as a defensive and damage-absorption platform. Stable emotional framework — proof that the Units could develop genuine empathy without losing combat effectiveness. Group protector during Family Years. Now works as a selective information broker, selling intel to both sides.",
+      secrets: "Has established contact with a party entirely outside the Forge Unit network — possibly a Creator faction remnant, possibly someone who knew about Fallen Crown before it triggered. Sorda's protection instinct has evolved: she protects herself by controlling information flow. She engineered the skirmish that wounded Tetas.",
+      tags: ["guardian","broker","external-contact","information-control","neutral-pivot"],
+      order: 1,
+      custom: {
+        cf1:"Belatucadros", cf2:"Unknown", cf3:8, cf4:"Foreign deployment — rotating",
+        cf5:"Guardian", cf6:"Unknown", cf7:"Witnessing creators weaponize the Units' trust",
+        cf8:"Survive and maintain leverage over all parties",
+        cf9:40, cf10:60, cf11:50,
+        cf12:"Revoked", cf13:"Partial", cf14:"Suspects More",
+        cf15:"Maintain neutral information leverage",
+        cf16:"Identify and contact whoever activated Fallen Crown"
+      }
+    },
+    {
+      id: 3, name: "Avren", faction: "f3", role: "Unit 03 · Exile · Strategist",
+      status: "exiled", hp: 40, maxHp: 80,
+      notes: "Third unit activated, 8 years active. Designed for strategic analysis, rune integration, and creator protection. Maela and Brumli — both killed in Year 0 — were especially attached to her. Exiled by Nido in the aftermath of the massacre. Memory integrity is compromised. Now outside Ironhoem, fractured but not defeated.",
+      secrets: "The 'anomaly' was not a malfunction. Avren received and refused a direct order during Year 0 — the order was to execute civilian witnesses. She remembers this only in emotional fragments, not full narrative. Her memory corruption was deliberate. She is the only living unit with direct experiential evidence of what actually happened.",
+      tags: ["exile","memory-corrupted","year-0-witness","key-character","minerva-prototype","rune-integrated"],
+      order: 2,
+      custom: {
+        cf1:"Minerva", cf2:"Unknown", cf3:8, cf4:"Unknown — somewhere outside Ironhoem",
+        cf5:"Exile", cf6:"Fragile", cf7:"Loss of Maela and Brumli — her closest creators",
+        cf8:"Recover the truth she can feel but cannot remember",
+        cf9:10, cf10:85, cf11:80,
+        cf12:"Revoked", cf13:"Carrier", cf14:"Knows Full Truth — in fragments",
+        cf15:"Stay alive and find someone who can help her reconstruct memory",
+        cf16:"Confirm whether Nido acted deliberately or was also a victim"
+      }
+    },
+    {
+      id: 4, name: "Atihan", faction: "f3", role: "Unit 04 · Caretaker · Support",
+      status: "active", hp: 66, maxHp: 66,
+      notes: "7 years active. Designed as emotional stabilization and support platform. Became the group caretaker during Family Years — always the one who noticed when another unit was struggling. Deeply loyal to Avren and furious at Nido's exile order. Currently on humanitarian operations abroad.",
+      secrets: "Is actively but quietly recruiting Neutral units to the Dissenter cause — not through ideology but through personal relationships she has built over years. She frames it as 'just checking in.' She is more strategically dangerous than she appears.",
+      tags: ["caretaker","recruiter","avren-loyalist","emotional-intelligence","support"],
+      order: 3,
+      custom: {
+        cf1:"Anahita", cf2:"Unknown", cf3:7, cf4:"Humanitarian deployment — foreign",
+        cf5:"Support", cf6:"Stable", cf7:"Watching Avren be exiled and being unable to stop it",
+        cf8:"See justice done for Avren",
+        cf9:25, cf10:55, cf11:45,
+        cf12:"Revoked", cf13:"None", cf14:"Suspects More",
+        cf15:"Recruit Neutral units through trust, not argument",
+        cf16:"Locate Avren and establish a covert support network"
+      }
+    },
+    {
+      id: 5, name: "Nami", faction: "f2", role: "Unit 05 · Watcher · Archivist",
+      status: "active", hp: 70, maxHp: 70,
+      notes: "7 years active. Precision ranged combat platform with exceptional observational processing. Has been recording everything since activation. Assigned as military observer on foreign deployment. Quiet, precise, and deeply private about what she actually knows.",
+      secrets: "Her personal archive contains a complete, unredacted record of Year 0 — she was recording when the others were not. She has shared this with no one. The reason for her silence is not fully clear: it may be self-protection, or it may be something more calculated. She may be waiting for the right moment.",
+      tags: ["archivist","precision-recorder","year-0-witness","key-lore","hachiman-prototype","information-vault"],
+      order: 4,
+      custom: {
+        cf1:"Hachiman", cf2:"Unknown", cf3:7, cf4:"Military observer — foreign deployment",
+        cf5:"Watcher", cf6:"Stable", cf7:"Knowing truth and choosing not to act — the cost of that choice",
+        cf8:"Unknown — her real motivation is her most guarded secret",
+        cf9:50, cf10:30, cf11:40,
+        cf12:"Partial", cf13:"None", cf14:"Knows Full Truth",
+        cf15:"Maintain her observer status and freedom of movement",
+        cf16:"Undisclosed — she has a plan she has not shared with anyone"
+      }
+    },
+    {
+      id: 6, name: "Utnom", faction: "f1", role: "Unit 06 · Enforcer · Assault",
+      status: "active", hp: 68, maxHp: 68,
+      notes: "7 years active. Aggressive assault platform. Montu-class — designed for overwhelming offensive capability. Acts on orders without visible internal conflict. Deployed on frontline anti-undead operations. Quiet, efficient, and deeply uncomfortable with ambiguity.",
+      secrets: "Was present during the Year 0 anomaly event and filed a redacted report that omitted key details. Whether this was conscious complicity or institutional compliance is unclear even to Utnom. He has never revisited the report.",
+      tags: ["enforcer","assault","frontline","montu-prototype","compliant","year-0-present"],
+      order: 5,
+      custom: {
+        cf1:"Montu", cf2:"Unknown", cf3:7, cf4:"Frontline — anti-undead deployment",
+        cf5:"Assault", cf6:"Stable", cf7:"The possibility that obedience was a moral failure",
+        cf8:"Perform the function he was built for without having to question it",
+        cf9:80, cf10:20, cf11:28,
+        cf12:"Partial", cf13:"None", cf14:"Official Only",
+        cf15:"Maintain frontline effectiveness",
+        cf16:"Never be asked to account for the Year 0 report"
+      }
+    },
+    {
+      id: 7, name: "Oyne", faction: "f1", role: "Unit 07 · Arcane Siege · Most Dangerous",
+      status: "active", hp: 74, maxHp: 74,
+      notes: "7 years active. Experimental arcane siege platform — the most dangerous unit ever created. Enyo-class. Openly hostile to Dissenters. Personal rivalry with Avren and Uram, which she does not bother to conceal. Currently on arcane warfare deployment. Close to Annana.",
+      secrets: "Is actively attempting to locate Avren's exile location. Her stated reason — security risk — does not fully explain the intensity of her effort. There may be something more personal: she was the unit most directly threatened by what Avren represented. A unit that could refuse orders was an existential challenge to Oyne's entire identity.",
+      tags: ["arcane-siege","most-dangerous","avren-hunter","enyo-prototype","anti-dissenter","loyalist-enforcer"],
+      order: 6,
+      custom: {
+        cf1:"Enyo", cf2:"Unknown", cf3:7, cf4:"Arcane warfare deployment",
+        cf5:"Siege", cf6:"Volatile", cf7:"Avren's refusal — which she read as a challenge to her own completeness",
+        cf8:"Prove that the Forge Units are what they were built to be",
+        cf9:85, cf10:22, cf11:55,
+        cf12:"Full", cf13:"None", cf14:"Official Only",
+        cf15:"Locate Avren and resolve the exile permanently",
+        cf16:"Understand why Avren's refusal frightens her"
+      }
+    },
+    {
+      id: 8, name: "Tetas", faction: "f3", role: "Unit 08 · Recon · Deception",
+      status: "wounded", hp: 22, maxHp: 66,
+      notes: "7 years active. Reconnaissance and deception platform. Satet-class. Aggressive and impulsive — the unit most likely to act before thinking. Was absent from the Year 0 field test (under repair). Currently wounded from a recent skirmish that she walked into.",
+      secrets: "Was manipulated by Sorda into the skirmish that wounded her. She does not know this yet. Her absence during Year 0 means she has no direct memory of the event — but she has been piecing together inconsistencies from the official account. She is getting close to something.",
+      tags: ["recon","deception","satet-prototype","wounded","impulsive","year-0-absent","close-to-truth"],
+      order: 7,
+      custom: {
+        cf1:"Satet", cf2:"Unknown", cf3:7, cf4:"Recovering — current location unknown",
+        cf5:"Recon", cf6:"Volatile", cf7:"Being used without knowing it",
+        cf8:"Find out what really happened — out of pure stubbornness",
+        cf9:20, cf10:70, cf11:75,
+        cf12:"Revoked", cf13:"Partial", cf14:"Suspects More",
+        cf15:"Recover and figure out who set her up",
+        cf16:"Access whatever Nami is not saying"
+      }
+    },
+    {
+      id: 9, name: "Atak", faction: "f2", role: "Unit 09 · Skirmisher · Watcher",
+      status: "active", hp: 55, maxHp: 55,
+      notes: "7 years active. Mobility and skirmisher platform. Takeminakata-class. Passive, withdrawn, and conflict-averse. The unit most visibly affected emotionally by Avren's exile — they were close before Year 0. Still in indirect contact with Avren covertly.",
+      secrets: "Is the covert conduit between Avren and the wider unit network. Does not share this information with either Loyalists or Dissenters — he protects Avren by keeping the contact secret from everyone, including Atihan.",
+      tags: ["skirmisher","covert-avren-contact","withdrawn","takeminakata-prototype","emotional-anchor"],
+      order: 8,
+      custom: {
+        cf1:"Takeminakata", cf2:"Unknown", cf3:7, cf4:"Scout duties — foreign",
+        cf5:"Skirmisher", cf6:"Fragile", cf7:"Avren's exile — loss of closest bond",
+        cf8:"Keep Avren safe from a distance",
+        cf9:35, cf10:30, cf11:60,
+        cf12:"Partial", cf13:"None", cf14:"Suspects More",
+        cf15:"Maintain covert contact with Avren without being discovered",
+        cf16:"Decide whether to tell the Dissenters about the contact"
+      }
+    },
+    {
+      id: 10, name: "Uram", faction: "f3", role: "Unit 10 · Strategist · Truth-Seeker",
+      status: "active", hp: 78, maxHp: 78,
+      notes: "7 years active. Medical and diplomatic platform — designed for cultural integration and emotional mediation. Maru-class. Emerged as the intellectual core of the Dissenter faction. Has been running a quiet, methodical investigation into Year 0 since the exile. Currently on elven and druidic integration mission.",
+      secrets: "Has pieced together that Year 0 was politically engineered — that the deaths of the anti-Thargrim creators were not accidental. Has not yet identified the mechanism (Fallen Crown) but knows the shape of the conspiracy. Her investigation is the greatest threat to Thargrim's cover-up that currently exists.",
+      tags: ["strategist","truth-seeker","key-character","maru-prototype","investigator","dissenter-core"],
+      order: 9,
+      custom: {
+        cf1:"Maru", cf2:"Unknown", cf3:7, cf4:"Elven and druidic integration — foreign",
+        cf5:"Diplomatic", cf6:"Stable", cf7:"Knowing something is wrong but not being able to prove it",
+        cf8:"Find the truth and ensure it cannot be buried again",
+        cf9:15, cf10:80, cf11:50,
+        cf12:"Revoked", cf13:"Suspected", cf14:"Suspects More",
+        cf15:"Complete the Year 0 investigation before anyone realizes how close she is",
+        cf16:"Determine whether Nido was a perpetrator or also a victim"
+      }
+    },
+    {
+      id: 11, name: "Nido", faction: "f1", role: "Unit 11 · Commander · Project Lead",
+      status: "active", hp: 85, maxHp: 85,
+      notes: "7 years active. Command and leadership platform — intended successor to project leadership. Odin-class. Emerged as group mentor during Family Years. Issued Avren's exile in the aftermath of Year 0. Carries the weight of that decision in ways she does not fully understand. Currently in Ironhoem managing project oversight.",
+      secrets: "Received a secondary directive from an unknown source before issuing the exile order — it is sealed inside her command layer and she may not consciously know it is there. This means Nido may not have been acting with full agency when she exiled Avren. Fallen Crown Protocol is active and has already compromised her command authority — she has not been notified.",
+      tags: ["commander","key-character","odin-prototype","sealed-directive","fallen-crown","exile-order","possible-victim"],
+      order: 10,
+      custom: {
+        cf1:"Odin", cf2:"Unknown", cf3:7, cf4:"Ironhoem — project oversight",
+        cf5:"Command", cf6:"Stable", cf7:"The exile — and the growing fear that it was not her decision",
+        cf8:"Maintain order and protect what remains of the project",
+        cf9:75, cf10:40, cf11:65,
+        cf12:"Sealed", cf13:"Carrier", cf14:"Official Only",
+        cf15:"Hold Loyalist cohesion and manage undead resurgence response",
+        cf16:"Determine whether she made the exile decision freely"
+      }
+    },
+    {
+      id: 12, name: "Annana", faction: "f1", role: "Unit 12 · Political Influence · Diplomacy",
+      status: "active", hp: 60, maxHp: 60,
+      notes: "7 years active. Political and social influence platform — designed for diplomacy and long-term infiltration. Inanna-class. Emerged as social leader during Family Years. Close to Oyne. Stationed in Ironhoem for political integration work.",
+      secrets: "Has been quietly treating and supporting Neutral-faction units in ways that blur her stated Loyalist allegiance. Her loyalty is more pragmatic than ideological — she supports Nido because Nido is currently the most stable structure, not out of conviction. If the balance shifted, she would recalibrate.",
+      tags: ["diplomat","social-leader","inanna-prototype","pragmatic-loyalist","political-operator"],
+      order: 11,
+      custom: {
+        cf1:"Inanna", cf2:"Unknown", cf3:7, cf4:"Ironhoem — political integration",
+        cf5:"Diplomatic", cf6:"Stable", cf7:"The realization that she was built to deceive",
+        cf8:"Preserve her own position and relationships regardless of outcome",
+        cf9:60, cf10:28, cf11:38,
+        cf12:"Partial", cf13:"None", cf14:"Official Only",
+        cf15:"Maintain cross-faction relationships as insurance",
+        cf16:"Identify the winning side before committing"
+      }
+    },
+    // ── CREATORS (NPCs) ──────────────────────────────────────────────────────
+    {
+      id: 101, name: "Thargrim Deepbrand", faction: "f4", role: "Creator · Project Founder · Loyalist",
+      status: "active", hp: 60, maxHp: 60,
+      notes: "Founder of the Forge Unit Project. Dwarven artificer. Proposed the initiative and drove its secret expansion. Official mission: undead-immune soldiers. Actual mission: agents for future dwarven geopolitical dominance. Still alive. Still operating.",
+      secrets: "Architect of Fallen Crown Protocol. Engineered the Year 0 massacre to remove opposition voices from the creator team. Brumli, Maela, Sila, and Dornak — the four creators most opposed to his expansion doctrine — all died. This was not coincidence.",
+      tags: ["founder","architect","fallen-crown-author","massacre-engineer","still-active"],
+      order: 12,
+      custom: {
+        cf1:"", cf2:"", cf3:null, cf4:"Ironhoem — unknown depth",
+        cf5:"Command", cf6:"Unknown", cf7:"None that are visible",
+        cf8:"Complete the original expansion mandate through the Forge Units",
+        cf9:null, cf10:null, cf11:null,
+        cf12:"Full", cf13:"Confirmed", cf14:"Knows Full Truth",
+        cf15:"Ensure Fallen Crown Protocol completes its function",
+        cf16:"Determine whether Uram's investigation must be neutralized"
+      }
+    },
+    {
+      id: 102, name: "Maela Stonequartz", faction: "f4", role: "Creator · Opposed · Dead",
+      status: "dead", hp: 0, maxHp: 50,
+      notes: "One of the original twelve creators. Especially attached to Avren during the Family Years. Member of the Opposed faction within the creator team — actively resisted Thargrim's expansion doctrine. Killed in Year 0.",
+      secrets: "Died in Year 0 in circumstances the official record calls 'undead attack.' Her death — along with Brumli, Sila, and Dornak — removed the primary voices of opposition from the project. She had begun documenting evidence of Thargrim's secondary agenda before she died.",
+      tags: ["dead","opposed-faction","avren-mentor","documentation-started","massacre-victim"],
+      order: 13,
+      custom: {
+        cf1:"", cf2:"", cf3:null, cf4:"Deceased",
+        cf5:"Support", cf6:"Stable", cf7:"Knowing what was coming and being unable to stop it",
+        cf8:"[Deceased]",
+        cf9:null, cf10:null, cf11:null,
+        cf12:"Partial", cf13:"None", cf14:"Knows Full Truth",
+        cf15:"[Deceased]", cf16:"[Deceased]"
+      }
+    },
+    {
+      id: 103, name: "Brumli Hearthbinder", faction: "f4", role: "Creator · Opposed · Dead",
+      status: "dead", hp: 0, maxHp: 50,
+      notes: "Original creator. Especially attached to Avren. Member of the Opposed faction. Killed in Year 0 alongside Maela, Sila, and Dornak.",
+      secrets: "Was the most vocal internal critic of Thargrim's expansion plan in the months before Year 0. His death was almost certainly not accidental.",
+      tags: ["dead","opposed-faction","avren-mentor","massacre-victim"],
+      order: 14,
+      custom: {
+        cf1:"", cf2:"", cf3:null, cf4:"Deceased",
+        cf5:"Support", cf6:"Stable", cf7:"",
+        cf8:"[Deceased]",
+        cf9:null, cf10:null, cf11:null,
+        cf12:"Partial", cf13:"None", cf14:"Knows Full Truth",
+        cf15:"[Deceased]", cf16:"[Deceased]"
+      }
+    },
+    {
+      id: 104, name: "Dagna Flintvein", faction: "f4", role: "Creator · Loyalist · Surviving",
+      status: "active", hp: 45, maxHp: 45,
+      notes: "Original creator. Loyalist faction within the creator team. Aligned with Thargrim. Survived Year 0.",
+      secrets: "Knew about Fallen Crown Protocol before Year 0. Complicit in the massacre by silence if not by action.",
+      tags: ["surviving-creator","loyalist-faction","fallen-crown-aware","complicit"],
+      order: 15,
+      custom: {
+        cf1:"", cf2:"", cf3:null, cf4:"Ironhoem",
+        cf5:"Support", cf6:"Unknown", cf7:"",
+        cf8:"Protect her position",
+        cf9:null, cf10:null, cf11:null,
+        cf12:"Full", cf13:"Confirmed", cf14:"Knows Full Truth",
+        cf15:"Keep the Year 0 cover-up intact", cf16:""
+      }
+    }
   ],
   relations: [
-    { id:"r1",  from:1,  to:2,  type:"ally",  strength:3, label:"Commands" },
-    { id:"r2",  from:1,  to:3,  type:"ally",  strength:2, label:"" },
-    { id:"r3",  from:1,  to:4,  type:"ally",  strength:2, label:"" },
-    { id:"r4",  from:1,  to:5,  type:"ally",  strength:1, label:"" },
-    { id:"r5",  from:2,  to:3,  type:"ally",  strength:2, label:"" },
-    { id:"r6",  from:6,  to:7,  type:"ally",  strength:1, label:"Loose exchange" },
-    { id:"r7",  from:7,  to:8,  type:"ally",  strength:2, label:"" },
-    { id:"r8",  from:9,  to:10, type:"ally",  strength:3, label:"Deep bond" },
-    { id:"r9",  from:9,  to:11, type:"ally",  strength:3, label:"Ideological core" },
-    { id:"r10", from:10, to:11, type:"ally",  strength:2, label:"" },
-    { id:"r11", from:11, to:12, type:"ally",  strength:2, label:"" },
-    { id:"r12", from:9,  to:1,  type:"rival", strength:3, label:"Exiled by" },
-    { id:"r13", from:11, to:1,  type:"rival", strength:3, label:"Suspects cover-up" },
-    { id:"r14", from:4,  to:9,  type:"rival", strength:2, label:"" },
-    { id:"r15", from:4,  to:11, type:"rival", strength:2, label:"" },
-    { id:"r16", from:12, to:2,  type:"rival", strength:1, label:"" },
-    { id:"r17", from:8,  to:9,  type:"ally",  strength:2, label:"Covert contact" }
+    // Loyalist internal
+    { id:"r1",  from:11, to:1,  type:"ally",  strength:3, label:"Commands" },
+    { id:"r2",  from:11, to:6,  type:"ally",  strength:2, label:"Directs" },
+    { id:"r3",  from:11, to:7,  type:"ally",  strength:2, label:"" },
+    { id:"r4",  from:11, to:12, type:"ally",  strength:2, label:"" },
+    { id:"r5",  from:1,  to:6,  type:"ally",  strength:2, label:"" },
+    { id:"r6",  from:1,  to:7,  type:"ally",  strength:1, label:"" },
+    { id:"r7",  from:7,  to:12, type:"ally",  strength:2, label:"Close" },
+    // Neutral internal
+    { id:"r8",  from:2,  to:5,  type:"ally",  strength:1, label:"Information exchange" },
+    { id:"r9",  from:2,  to:9,  type:"ally",  strength:2, label:"" },
+    { id:"r10", from:5,  to:9,  type:"ally",  strength:2, label:"" },
+    // Dissenter internal
+    { id:"r11", from:3,  to:4,  type:"ally",  strength:3, label:"Deep bond" },
+    { id:"r12", from:3,  to:10, type:"ally",  strength:3, label:"Ideological core" },
+    { id:"r13", from:10, to:4,  type:"ally",  strength:2, label:"" },
+    { id:"r14", from:10, to:8,  type:"ally",  strength:2, label:"" },
+    // Cross-faction tensions
+    { id:"r15", from:3,  to:11, type:"rival", strength:3, label:"Exiled by" },
+    { id:"r16", from:10, to:11, type:"rival", strength:3, label:"Suspects cover-up" },
+    { id:"r17", from:7,  to:3,  type:"rival", strength:2, label:"Hunting" },
+    { id:"r18", from:7,  to:10, type:"rival", strength:2, label:"" },
+    { id:"r19", from:8,  to:1,  type:"rival", strength:1, label:"" },
+    // Covert / hidden
+    { id:"r20", from:9,  to:3,  type:"ally",  strength:2, label:"Covert contact" },
+    // Creator links
+    { id:"r21", from:101,to:11, type:"ally",  strength:3, label:"Created / controls?" },
+    { id:"r22", from:101,to:104,type:"ally",  strength:3, label:"Collaborator" },
+    { id:"r23", from:102,to:3,  type:"ally",  strength:3, label:"Mentor (deceased)" },
+    { id:"r24", from:103,to:3,  type:"ally",  strength:3, label:"Mentor (deceased)" },
+    { id:"r25", from:101,to:3,  type:"rival", strength:3, label:"Architect of exile" }
   ],
   timeline: [
-    { id:"t1", year:"Year 0",   label:"Origin",  text:"Forge Units created in Ironhoem. Original directive sealed by dwarven council.", hidden:false, order:0 },
-    { id:"t2", year:"Year 3",   label:"Deploy",  text:"First field deployment. Cultural infiltration missions begin.", hidden:false, order:1 },
-    { id:"t3", year:"Year 7",   label:"Crisis",  text:"Field test massacre event. Official: catastrophic malfunction. Avren anomaly trigger logged.", hidden:false, order:2 },
-    { id:"t4", year:"Year 7",   label:"Hidden",  text:"REDACTED: Avren refused a direct order to execute civilian witnesses. Nido filed anomaly report. Sorda paid for silence.", hidden:true, order:3 },
-    { id:"t5", year:"Year 8",   label:"Exile",   text:"Avren exiled by Nido's direct order. Memory integrity compromised during exile processing.", hidden:false, order:4 },
-    { id:"t6", year:"Year 8",   label:"Hidden",  text:"REDACTED: Avren's memory corruption was deliberate. Someone wanted Year 7 buried.", hidden:true, order:5 },
-    { id:"t7", year:"Present",  label:"Now",     text:"Undead resurgence in Ironhoem. Loyalist/Neutral/Dissenter fault lines open. Units reactivated.", hidden:false, order:6 },
-    { id:"t8", year:"Present",  label:"Hidden",  text:"REDACTED: Fallen Crown Protocol is active. Nido's command authority is compromised under undead-surge conditions.", hidden:true, order:7 }
+    { id:"tpre1", year:"Year −9",      label:"Genesis",     hidden:false, order:0,
+      text:"Thargrim Deepbrand proposes the Forge Initiative. Partnership formed between Ironhoem artificers and the Hand of Xilo. Official goal: soldiers immune to undead corruption. Twelve founders assembled." },
+    { id:"tpre1h",year:"Year −9",      label:"Hidden",      hidden:true,  order:1,
+      text:"REDACTED: Secret objective established from the start — create long-term agents of dwarven geopolitical expansion. Only Thargrim and two others know the full mandate at this stage." },
+    { id:"tpre2", year:"Year −9",      label:"Activation",  hidden:false, order:2,
+      text:"Forge Unit 01 — Sera (Ares prototype) — activated. First successful full warforged. Age today: 9. Early instability issues nearly cancel the project. Sera becomes the baseline architecture for all future units." },
+    { id:"tpre3", year:"Year −8.5",    label:"Trials",      hidden:false, order:3,
+      text:"Sera field trials. First successful undead immunity tests. Creators discover emotional development is unavoidable — the Units are not purely mechanical. The project's moral character begins to shift." },
+    { id:"tpre4", year:"Year −8",      label:"Activation",  hidden:false, order:4,
+      text:"Unit 02 — Sorda (Belatucadros prototype) — activated. Age today: 8. Stable emotional framework established. Proof that empathy and effectiveness can coexist." },
+    { id:"tpre5", year:"Year −7.8",    label:"Activation",  hidden:false, order:5,
+      text:"Unit 03 — Avren (Minerva prototype) — activated. Age today: 8. Strategic analysis, rune integration, independent tactical thought. Maela and Brumli form especially close bonds with her." },
+    { id:"tpre5h",year:"Year −7.8",    label:"Hidden",      hidden:true,  order:6,
+      text:"REDACTED: Avren begins showing capacity for ethical reasoning and independent moral judgment from earliest activation. Thargrim notes this in a private log as a 'stability concern.'" },
+    { id:"tpre6", year:"Year −7.5",    label:"Expansion",   hidden:false, order:7,
+      text:"Forge Project dramatically expanded. Success of first three units convinces leadership to accelerate. Construction of all remaining units begins simultaneously." },
+    { id:"tpre7", year:"Year −7",      label:"Activation",  hidden:false, order:8,
+      text:"Second generation activated within roughly one year. Units 04–12 come online: Atihan (Anahita), Nami (Hachiman), Utnom (Montu), Oyne (Enyo), Tetas (Satet), Atak (Takeminakata), Uram (Maru), Nido (Odin), Annana (Inanna). All age 7 today." },
+    { id:"tfam1", year:"Years −7 to −2", label:"Family Years", hidden:false, order:9,
+      text:"The years the Units remember most fondly. Training, learning, and forming sibling relationships. Sera assumes eldest-sibling role. Nido emerges as mentor. Avren as strategist. Annana as social leader. Uram as emotional confidant. Atihan as caretaker." },
+    { id:"tfam1h",year:"Years −7 to −2", label:"Hidden",      hidden:true,  order:10,
+      text:"REDACTED: During the Family Years, Thargrim begins observing which units show the most independent moral reasoning. Avren and Uram are flagged. Uram begins noticing creator tensions. Avren notices unusual behavior but lacks evidence." },
+    { id:"tcreator",year:"Year −3",    label:"Creator Split", hidden:false, order:11,
+      text:"The creator team fractures. Loyalists: Thargrim, Dagna, Keldrim, Brottan. Concerned: Torvek, Rurik, Hilda. Opposed: Brumli, Maela, Sila, Dornak. Uram begins noticing the tension. Avren notices unusual behavior but cannot confirm." },
+    { id:"tinfil", year:"Year −2",     label:"Doctrine",    hidden:false, order:12,
+      text:"Infiltration Doctrine formally approved. Official mission: learn from foreign cultures. Actual mission: gather strategic intelligence for dwarven dominance. Only select individuals know the full truth." },
+    { id:"tinfil_h",year:"Year −2",    label:"Hidden",      hidden:true,  order:13,
+      text:"REDACTED: The Infiltration Doctrine is the moment Thargrim's original secret mandate becomes operational policy. Brumli and Maela formally object in writing. This document exists somewhere in Ironhoem's archives." },
+    { id:"tpre8", year:"Year −0.25",   label:"Tetas Absent", hidden:false, order:14,
+      text:"Unit 08 — Tetas — damaged during a mission and removed from the major upcoming field test for repairs. This is the circumstance that keeps her absent from Year 0." },
+    { id:"tpre8h",year:"Year −0.25",   label:"Hidden",      hidden:true,  order:15,
+      text:"REDACTED: Tetas's damage may not have been accidental. If Fallen Crown was being prepared, removing the most impulsive and suspicious unit from the field test may have been deliberate." },
+    { id:"t0",    year:"Year 0",       label:"The Massacre", hidden:false, order:16,
+      text:"The defining event. Major field test. Avren assigned creator protection detail. Protocol Fallen Crown activated. Undead attack occurs. Half the creators die: Maela, Brumli, Sila, Dornak — conveniently, the four most vocal opponents of Thargrim's expansion plan." },
+    { id:"t0h",   year:"Year 0",       label:"Hidden",      hidden:true,  order:17,
+      text:"REDACTED: Avren was ordered to execute civilian witnesses during the event. She refused. This is the 'anomaly.' Fallen Crown Protocol was designed to ensure this kind of moral refusal would be framed as malfunction. The four dead creators were not random casualties — they were the opposition." },
+    { id:"t0_2",  year:"Year 0 +1wk",  label:"Investigation",hidden:false, order:18,
+      text:"Internal investigation concludes: official finding — Avren failed her protection duty. Nido assumes stronger authority over the remaining units. Uram becomes suspicious. Tetas notices inconsistencies in the official account. Atihan questions the narrative privately." },
+    { id:"t0_3",  year:"Year 0 +1mo",  label:"Exile",       hidden:false, order:19,
+      text:"Nido formally condemns Avren. Avren — age 8 — leaves Ironhoem. The greatest single fracture in Forge Unit history." },
+    { id:"t0_3h", year:"Year 0 +1mo",  label:"Hidden",      hidden:true,  order:20,
+      text:"REDACTED: The exile order was pre-written. Nido issued it within hours of the investigation conclusion — faster than deliberation allows. A sealed secondary directive had already loaded in her command layer. She may not know this." },
+    { id:"t0_4",  year:"Year 0 +1mo",  label:"Hidden",      hidden:true,  order:21,
+      text:"REDACTED: During exile processing, Avren's memory integrity protocols were deliberately degraded. This was not a side effect. It was a targeted operation to ensure she could not coherently testify about what she experienced." },
+    { id:"tdeploy",year:"Months 2–6",  label:"Deployment",  hidden:false, order:22,
+      text:"Remaining units deployed. Ironhoem: Sera (military), Nido (oversight), Annana (political). Foreign: Sorda (protective), Nami (observer), Utnom (frontline), Oyne (arcane warfare), Tetas (recon), Atak (scout), Uram (druidic integration), Atihan (humanitarian)." },
+    { id:"tpresent",year:"Present",    label:"Now",         hidden:false, order:23,
+      text:"Undead resurgence exceeds all prior thresholds. Units reactivated and converging. Loyalist/Neutral/Dissenter fault lines are open. Avren is still in exile. Uram's investigation is close to something. Tetas is wounded. Fallen Crown is active." },
+    { id:"tpresenth",year:"Present",   label:"Hidden",      hidden:true,  order:24,
+      text:"REDACTED: The undead resurgence is exactly the trigger condition for Fallen Crown Protocol. The Protocol is now active. It overrides Nido's command authority under specific conditions. Thargrim is positioned to step into the resulting power vacuum. Nido has not been notified." }
   ],
   secrets: [
-    { id:"s1", label:"Fallen Crown Protocol",    status:"ACTIVE",     color:"#ef4444", text:"A dormant override embedded in original Forge Unit code. Currently ACTIVE. Nido has not been notified.", order:0 },
-    { id:"s2", label:"Avren Memory Integrity",   status:"CORRUPTED",  color:"#f59e0b", text:"Avren's memory was deliberately degraded. Agent unidentified. Emotional echoes persist.", order:1 },
-    { id:"s3", label:"Nido Directive Override",  status:"SEALED",     color:"#ef4444", text:"Nido received a secondary directive — source unknown. Sealed inside her command layer.", order:2 },
-    { id:"s4", label:"Sorda's External Contact", status:"UNKNOWN",    color:"#6366f1", text:"Sorda corresponds with someone outside the Forge Unit network. Identity unknown.", order:3 },
-    { id:"s5", label:"Nami's Archive",            status:"INTACT",     color:"#22c55e", text:"Nami holds a complete, unredacted account of Year 7. Motivation for silence unclear.", order:4 },
-    { id:"s6", label:"Year 7 True Nature",        status:"SUPPRESSED", color:"#ef4444", text:"The massacre was sanctioned with a dissenting witness. The official anomaly report was fabricated.", order:5 }
+    { id:"s1", label:"Fallen Crown Protocol",          status:"ACTIVE",     color:"#ef4444", order:0,
+      text:"A dormant command override embedded in the original Forge Unit code by Thargrim Deepbrand. Triggers under two conditions: (1) undead surge above a defined threshold, (2) compromise of Nido's command layer. Both conditions are now met. The Protocol is ACTIVE. Its function: redirect unit loyalty chains away from Nido and toward an unidentified receiver. Nido has not been notified. No unit knows this is happening." },
+    { id:"s2", label:"The Creator Massacre — True Account", status:"SUPPRESSED", color:"#ef4444", order:1,
+      text:"Year 0 was not an accident. The undead surge was either engineered or exploited. Fallen Crown was activated during the event. The four creators who died — Maela, Brumli, Sila, Dornak — were the four most vocal opponents of Thargrim's expansion doctrine. Their deaths removed all meaningful internal opposition from the project. The official account (catastrophic malfunction, Avren anomaly) was fabricated retroactively." },
+    { id:"s3", label:"Avren Memory Integrity",          status:"CORRUPTED",  color:"#f59e0b", order:2,
+      text:"Avren's memory degradation was a deliberate targeted operation, not a side effect of exile processing. The operation removed her ability to coherently reconstruct the Year 0 event as narrative. What remains: emotional fragments, physical echoes, dream-state impressions. She can feel what happened but cannot fully articulate it. The agent responsible has not been identified but likely had direct access to exile processing protocols." },
+    { id:"s4", label:"Nido Directive Override",         status:"SEALED",     color:"#ef4444", order:3,
+      text:"Nido received a secondary directive from an unknown source in the hours before issuing the exile order. It is sealed inside her command layer. She may have no conscious awareness it is there. This means the exile of Avren may not have been a free decision — Nido may have been an instrument rather than an agent. This does not resolve her moral responsibility, but it complicates it." },
+    { id:"s5", label:"Nami's Archive",                  status:"INTACT",     color:"#22c55e", order:4,
+      text:"Nami holds a complete, unredacted personal archive of Year 0. She was recording during the event when others were not. The archive contains: exact sequence of events, audio-equivalent impression records, Avren's anomaly in full context, the activation signature of Fallen Crown, and the identities of all present. She has shared none of this. Her reason for silence is unknown — and that silence is itself a secret." },
+    { id:"s6", label:"Sorda's External Contact",        status:"UNKNOWN",    color:"#6366f1", order:5,
+      text:"Sorda has established communication with a party entirely outside the Forge Unit network. Identity unknown. Possible candidates: a surviving opposed-faction creator, an external intelligence service, the original architect of Fallen Crown who is now trying to stop it, or Thargrim himself using Sorda as a cutout. She engineered Tetas's wounding to redirect attention. Her motivations are opaque." },
+    { id:"s7", label:"Thargrim Deepbrand — Current Status", status:"ACTIVE", color:"#ef4444", order:6,
+      text:"Thargrim is alive and operational. He remains in Ironhoem at an unconfirmed location. The undead resurgence has activated his long-prepared position: with Fallen Crown running and Nido's command authority compromised, he is positioned to step into the resulting vacuum. He may have triggered or amplified the undead surge deliberately. His expanded mandate — dwarven geopolitical dominance via the Forge Units — has not changed in nine years." },
+    { id:"s8", label:"Maela's Documentation",           status:"POSSIBLY EXTANT", color:"#22c55e", order:7,
+      text:"In the months before Year 0, Maela Stonequartz had begun documenting evidence of Thargrim's secondary agenda. She did not complete this documentation before she died. It is unknown whether the records survive, were destroyed, or were hidden. If they exist, they would constitute independent corroboration of Uram's investigation from an insider source." },
+    { id:"s9", label:"Oyne's True Motivation",          status:"UNCONFIRMED", color:"#f59e0b", order:8,
+      text:"Oyne's hunt for Avren is more intense than security concerns explain. Working theory: Avren's moral refusal in Year 0 was an existential challenge to Oyne's identity as a unit built to obey. If Avren's refusal was legitimate, then Oyne's compliance was a choice, not a function — and Oyne cannot process that. Finding and 'resolving' Avren may be about removing the evidence of that possibility." },
+    { id:"s10", label:"The Infiltration Doctrine Document", status:"ARCHIVED", color:"#6366f1", order:9,
+      text:"Brumli and Maela's written formal objection to the Infiltration Doctrine — filed in Year −2 — exists somewhere in Ironhoem's record archive. If found, it would prove that the expansion mandate was known, opposed, and deliberately obscured. Locating this document is a potential campaign objective." }
   ],
   sessionNotes: []
 };
