@@ -435,6 +435,53 @@ const STATUS_OPTS = ["active","wounded","exiled","dead","unknown"];
 const STATUS_COLOR = { active:"#22c55e", wounded:"#f59e0b", exiled:"#ef4444", dead:"#6b7280", unknown:"#a855f7" };
 const REL_TYPES = ["ally","rival","neutral","unknown"];
 
+// ─── IMAGE UTILITIES ─────────────────────────────────────────────────────────
+// Images stored as base64 data-URLs inside the world JSON so they survive
+// export/import without any external hosting.
+function readFileAsDataURL(file) {
+  return new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload  = e => res(e.target.result);
+    r.onerror = () => rej(new Error("Read failed"));
+    r.readAsDataURL(file);
+  });
+}
+
+// Reusable upload/preview/clear widget. Stores base64 in world state.
+function ImageUploader({ value, onChange, size="md", label="Image", round=false }) {
+  const ref = useRef(null);
+  const dim = size==="sm"?44:size==="lg"?120:72;
+  const radius = round ? "50%" : 6;
+  const handle = async e => {
+    const file = e.target.files[0]; if(!file) return;
+    if(!file.type.startsWith("image/")){ alert("Please select an image file."); return; }
+    if(file.size > 3*1024*1024){ alert("Image must be under 3 MB."); return; }
+    onChange(await readFileAsDataURL(file));
+    e.target.value="";
+  };
+  return (
+    <div style={{ display:"flex", flexDirection:"column", gap:4 }}>
+      {label&&<span style={{ fontSize:9, color:C.textD, textTransform:"uppercase", letterSpacing:"0.08em" }}>{label}</span>}
+      <div style={{ display:"flex", gap:8, alignItems:"center" }}>
+        <div onClick={()=>ref.current?.click()} style={{
+          width:dim, height:dim, borderRadius:radius,
+          border:`2px dashed ${value?C.borderB:C.border}`,
+          background:C.bg0, cursor:"pointer", overflow:"hidden", flexShrink:0,
+          display:"flex", alignItems:"center", justifyContent:"center" }}>
+          {value
+            ? <img src={value} alt="" style={{ width:"100%", height:"100%", objectFit:"cover" }} />
+            : <span style={{ fontSize:dim>50?20:14, color:C.textD }}>+</span>}
+        </div>
+        <div style={{ display:"flex", flexDirection:"column", gap:4 }}>
+          <button onClick={()=>ref.current?.click()} style={{ ...mBt, fontSize:10 }}>{value?"Change":"Upload"}</button>
+          {value&&<button onClick={()=>onChange("")} style={{ ...mBt, color:"#f87171", fontSize:10 }}>Remove</button>}
+        </div>
+        <input ref={ref} type="file" accept="image/*" onChange={handle} style={{ display:"none" }} />
+      </div>
+    </div>
+  );
+}
+
 function fCol(factions, fid) { return factions.find(f=>f.id===fid)?.color || "#64748b"; }
 function fName(factions, fid) { return factions.find(f=>f.id===fid)?.name || fid; }
 
@@ -576,12 +623,26 @@ function FactionManager({ factions, onSave, onClose }) {
             background:C.bg1, border:`1px solid ${C.border}`, borderLeft:`3px solid ${f.color}`,
             borderRadius:6, padding:"8px 10px", cursor:"grab" }}>
             <span style={{ color:C.textD, fontSize:13 }}>⠿</span>
+            <div style={{ flexShrink:0 }}>
+              <div onClick={e=>{ e.stopPropagation(); const inp=document.createElement("input"); inp.type="file"; inp.accept="image/*";
+                inp.onchange=async ev=>{ const file=ev.target.files[0]; if(!file) return;
+                  const url=await readFileAsDataURL(file);
+                  setList(l=>l.map(x=>x.id===f.id?{...x,image:url}:x)); }; inp.click(); }}
+                style={{ width:36, height:36, borderRadius:"50%", border:`2px dashed ${f.image?f.color:C.border}`,
+                  background:C.bg0, cursor:"pointer", overflow:"hidden",
+                  display:"flex", alignItems:"center", justifyContent:"center" }}>
+                {f.image
+                  ? <img src={f.image} alt="" style={{ width:"100%", height:"100%", objectFit:"cover" }} />
+                  : <span style={{ fontSize:14, color:f.color }}>⬟</span>}
+              </div>
+            </div>
             <input type="color" value={f.color} onChange={e=>setList(l=>l.map(x=>x.id===f.id?{...x,color:e.target.value}:x))}
               style={{ width:28, height:28, border:"none", background:"none", cursor:"pointer", padding:0 }} />
             <input value={f.name} onChange={e=>setList(l=>l.map(x=>x.id===f.id?{...x,name:e.target.value}:x))}
               style={{ ...iSt, width:130 }} placeholder="Faction name" />
             <input value={f.desc||""} onChange={e=>setList(l=>l.map(x=>x.id===f.id?{...x,desc:e.target.value}:x))}
               style={{ ...iSt, flex:1 }} placeholder="Description" />
+            {f.image&&<button onClick={()=>setList(l=>l.map(x=>x.id===f.id?{...x,image:""}:x))} style={{ ...mBt, fontSize:9 }}>✕img</button>}
             <button onClick={()=>setList(l=>l.filter(x=>x.id!==f.id))} style={{ ...mBt, color:"#f87171" }}>✕</button>
           </div>
         ))}
@@ -752,33 +813,36 @@ function RelationManager({ relations, characters, onSave, onClose }) {
 
 // ─── CHAR FORM ────────────────────────────────────────────────────────────────
 function CharForm({ init, factions, customFields, onSubmit, onCancel, label }) {
-  const blank = { name:"", faction:factions[0]?.id||"", role:"", status:"active", hp:60, maxHp:60, notes:"", secrets:"", tagsStr:"", custom:{} };
-  const [d, setD] = useState(init ? { ...init, tagsStr:(init.tags||[]).join(", ") } : blank);
+  const blank = { name:"", faction:factions[0]?.id||"", role:"", status:"active", hp:60, maxHp:60, notes:"", secrets:"", tagsStr:"", custom:{}, image:"" };
+  const [d, setD] = useState(init ? { ...init, tagsStr:(init.tags||[]).join(", "), image:init.image||"" } : blank);
   const set = k => e => setD(p=>({...p,[k]:e.target.value}));
   const setC = (id,v) => setD(p=>({...p,custom:{...p.custom,[id]:v}}));
 
   return (
     <div>
-      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"0 12px" }}>
-        <FR label="Name"><input value={d.name} onChange={set("name")} style={iSt} /></FR>
-        <FR label="Role / Class / Type"><input value={d.role} onChange={set("role")} style={iSt} /></FR>
-        <FR label="Faction">
-          <select value={d.faction} onChange={set("faction")} style={sSt}>
-            {factions.length===0&&<option value="">No factions defined</option>}
-            {factions.map(f=><option key={f.id} value={f.id}>{f.name}</option>)}
-          </select>
-        </FR>
-        <FR label="Status">
-          <select value={d.status} onChange={set("status")} style={sSt}>
-            {STATUS_OPTS.map(s=><option key={s}>{s}</option>)}
-          </select>
-        </FR>
-        <FR label="Current HP">
-          <input type="number" value={d.hp} onChange={e=>setD(p=>({...p,hp:Number(e.target.value)}))} style={{ ...iSt, width:80 }} />
-        </FR>
-        <FR label="Max HP">
-          <input type="number" value={d.maxHp} onChange={e=>setD(p=>({...p,maxHp:Number(e.target.value)}))} style={{ ...iSt, width:80 }} />
-        </FR>
+      <div style={{ display:"flex", gap:16, marginBottom:12, alignItems:"flex-start" }}>
+        <ImageUploader value={d.image||""} onChange={v=>setD(p=>({...p,image:v}))} size="lg" label="Portrait" round />
+        <div style={{ flex:1, display:"grid", gridTemplateColumns:"1fr 1fr", gap:"0 12px" }}>
+          <FR label="Name"><input value={d.name} onChange={set("name")} style={iSt} /></FR>
+          <FR label="Role / Class / Type"><input value={d.role} onChange={set("role")} style={iSt} /></FR>
+          <FR label="Faction">
+            <select value={d.faction} onChange={set("faction")} style={sSt}>
+              {factions.length===0&&<option value="">No factions defined</option>}
+              {factions.map(f=><option key={f.id} value={f.id}>{f.name}</option>)}
+            </select>
+          </FR>
+          <FR label="Status">
+            <select value={d.status} onChange={set("status")} style={sSt}>
+              {STATUS_OPTS.map(s=><option key={s}>{s}</option>)}
+            </select>
+          </FR>
+          <FR label="Current HP">
+            <input type="number" value={d.hp} onChange={e=>setD(p=>({...p,hp:Number(e.target.value)}))} style={{ ...iSt, width:80 }} />
+          </FR>
+          <FR label="Max HP">
+            <input type="number" value={d.maxHp} onChange={e=>setD(p=>({...p,maxHp:Number(e.target.value)}))} style={{ ...iSt, width:80 }} />
+          </FR>
+        </div>
       </div>
       <FR label="Tags (comma-separated)">
         <input value={d.tagsStr} onChange={set("tagsStr")} style={iSt} placeholder="warrior, spy, key-character, undead..." />
@@ -832,10 +896,21 @@ function CharCard({ char, factions, customFields, onSelect, onEdit, onDelta, onD
     <div {...(dragH||{})} style={{ background:C.bg1, border:`1px solid ${col}33`,
       borderLeft:`3px solid ${col}`, borderRadius:8, overflow:"hidden",
       cursor:dragH?"grab":"default" }}>
+      {char.image&&(
+        <div style={{ width:"100%", height:100, overflow:"hidden", position:"relative" }}>
+          <img src={char.image} alt={char.name}
+            style={{ width:"100%", height:"100%", objectFit:"cover", display:"block" }} />
+          <div style={{ position:"absolute", inset:0,
+            background:"linear-gradient(to bottom, transparent 40%, rgba(12,18,32,0.92) 100%)" }} />
+          <div style={{ position:"absolute", bottom:6, left:12, fontSize:14, fontWeight:"bold", color:"#f8fafc" }}>
+            {char.name}
+          </div>
+        </div>
+      )}
       <div style={{ padding:"10px 12px" }}>
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:5 }}>
           <div>
-            <div style={{ fontSize:14, fontWeight:"bold", color:"#f8fafc", cursor:"pointer" }} onClick={onSelect}>{char.name}</div>
+            {!char.image&&<div style={{ fontSize:14, fontWeight:"bold", color:"#f8fafc", cursor:"pointer" }} onClick={onSelect}>{char.name}</div>}
             <div style={{ fontSize:10, color:C.textD }}>{char.role||"—"} · <span style={{ color:col }}>{fName(factions,char.faction)}</span></div>
           </div>
           <span style={{ fontSize:9, padding:"2px 6px", borderRadius:4, fontWeight:"bold",
@@ -889,7 +964,19 @@ function Inspector({ char, world, secretsOn, onClose, onUpdate, onEdit }) {
   return (
     <div style={{ position:"fixed", right:0, top:0, width:300, height:"100vh",
       background:"#060a12", borderLeft:`1px solid ${C.border}`, overflowY:"auto",
-      padding:16, zIndex:200, fontFamily:C.mono }}>
+      padding:0, zIndex:200, fontFamily:C.mono }}>
+      {/* Portrait / header */}
+      <div style={{ position:"relative", width:"100%", height: char.image?160:0, overflow:"hidden", flexShrink:0 }}>
+        {char.image&&(
+          <>
+            <img src={char.image} alt={char.name}
+              style={{ width:"100%", height:"100%", objectFit:"cover", display:"block" }} />
+            <div style={{ position:"absolute", inset:0,
+              background:"linear-gradient(to bottom, transparent 30%, #060a12 100%)" }} />
+          </>
+        )}
+      </div>
+      <div style={{ padding:16 }}>
       <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:12 }}>
         <span style={{ fontSize:16, fontWeight:"bold", color:col }}>{char.name}</span>
         <div style={{ display:"flex", gap:5 }}>
@@ -983,6 +1070,7 @@ function Inspector({ char, world, secretsOn, onClose, onUpdate, onEdit }) {
           <div style={{ fontSize:11, color:"#fca5a5", lineHeight:1.6 }}>{char.secrets}</div>
         </div>
       )}
+      </div>
     </div>
   );
 }
@@ -994,8 +1082,15 @@ function SecretCard({ secret, onUpdate, onDelete, dragH }) {
   const set = k => e => setD(p=>({...p,[k]:e.target.value}));
   return (
     <div {...(dragH||{})} style={{ background:C.bg1, border:`1px solid ${secret.color}44`,
-      borderLeft:`3px solid ${secret.color}`, borderRadius:8, padding:"12px 14px",
+      borderLeft:`3px solid ${secret.color}`, borderRadius:8, overflow:"hidden",
       cursor:dragH?"grab":"default" }}>
+      {secret.image&&!editing&&(
+        <div style={{ width:"100%", height:70, overflow:"hidden", position:"relative" }}>
+          <img src={secret.image} alt="" style={{ width:"100%", height:"100%", objectFit:"cover" }} />
+          <div style={{ position:"absolute", inset:0, background:"linear-gradient(to bottom, transparent 30%, rgba(12,18,32,0.9) 100%)" }} />
+        </div>
+      )}
+      <div style={{ padding:"12px 14px" }}>
       <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:6, gap:8 }}>
         {editing
           ? <input value={d.label} onChange={set("label")} style={{ ...iSt, width:160 }} />
@@ -1013,6 +1108,11 @@ function SecretCard({ secret, onUpdate, onDelete, dragH }) {
           }
         </div>
       </div>
+      {editing&&(
+        <div style={{ marginBottom:8 }}>
+          <ImageUploader value={d.image||""} onChange={v=>setD(p=>({...p,image:v}))} size="md" label="Illustration (optional)" />
+        </div>
+      )}
       {editing
         ? <textarea value={d.text} onChange={set("text")} rows={4} style={{ ...iSt, resize:"vertical", marginBottom:8 }} />
         : <div style={{ fontSize:11, color:"#94a3b8", lineHeight:1.6, marginBottom:8 }}>{secret.text}</div>
@@ -1029,13 +1129,14 @@ function SecretCard({ secret, onUpdate, onDelete, dragH }) {
             </>
         }
       </div>
+      </div>
     </div>
   );
 }
 
 // ─── TIMELINE FORM ────────────────────────────────────────────────────────────
 function TimelineForm({ init, onSubmit, onCancel }) {
-  const [d, setD] = useState(init||{ year:"", label:"", text:"", hidden:false });
+  const [d, setD] = useState(init||{ year:"", label:"", text:"", hidden:false, image:"" });
   const set = k => e => setD(p=>({...p,[k]:e.target.value}));
   return (
     <div>
@@ -1044,6 +1145,9 @@ function TimelineForm({ init, onSubmit, onCancel }) {
       <FR label="Event Description">
         <textarea value={d.text} onChange={set("text")} rows={3} style={{ ...iSt, resize:"vertical" }} />
       </FR>
+      <div style={{ marginBottom:10 }}>
+        <ImageUploader value={d.image||""} onChange={v=>setD(p=>({...p,image:v}))} size="md" label="Event Image / Map / Illustration (optional)" />
+      </div>
       <FR label="Hidden (DM-only layer)">
         <label style={{ display:"flex", alignItems:"center", gap:6, fontSize:11, color:C.textM, cursor:"pointer" }}>
           <input type="checkbox" checked={!!d.hidden} onChange={e=>setD(p=>({...p,hidden:e.target.checked}))} />
@@ -1211,7 +1315,10 @@ export default function WorldSim() {
       <div style={{ background:C.bg2, borderBottom:`1px solid ${C.border}`, padding:"9px 16px",
         display:"flex", justifyContent:"space-between", alignItems:"center", gap:8, flexWrap:"wrap" }}>
         <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-          <span style={{ fontSize:18, color:"#f59e0b" }}>⬡</span>
+          {world.meta.banner
+            ? <img src={world.meta.banner} alt="" style={{ width:38, height:38, borderRadius:6, objectFit:"cover", border:`1px solid ${C.border}` }} />
+            : <span style={{ fontSize:18, color:"#f59e0b" }}>⬡</span>
+          }
           <div>
             <div style={{ fontSize:13, fontWeight:"bold", color:"#f8fafc", letterSpacing:"0.08em", textTransform:"uppercase" }}>
               {world.meta.title||"Untitled World"}
@@ -1237,7 +1344,7 @@ export default function WorldSim() {
       {/* META EDITOR */}
       {showMeta&&(
         <div style={{ background:C.bg2, borderBottom:`1px solid ${C.border}`, padding:"10px 16px",
-          display:"flex", gap:10, flexWrap:"wrap", alignItems:"flex-end" }}>
+          display:"flex", gap:12, flexWrap:"wrap", alignItems:"flex-end" }}>
           {["title","campaign","system"].map(k=>(
             <label key={k} style={{ display:"flex", flexDirection:"column", gap:3 }}>
               <span style={{ fontSize:9, color:C.textD, textTransform:"uppercase" }}>{k}</span>
@@ -1245,6 +1352,8 @@ export default function WorldSim() {
                 style={{ ...iSt, width:170 }} />
             </label>
           ))}
+          <ImageUploader value={world.meta.banner||""} onChange={v=>setWorld(w=>({...w,meta:{...w.meta,banner:v}}))}
+            size="sm" label="World Banner" />
           <button style={{ ...bSt(C.bg3), marginBottom:0 }} onClick={()=>setShowMeta(false)}>Done</button>
         </div>
       )}
@@ -1378,11 +1487,23 @@ export default function WorldSim() {
                   const p=netPos[c.id]; if(!p) return null;
                   const col=fCol(world.factions,c.faction);
                   const sel=inspector?.id===c.id;
+                  const r=sel?22:16;
+                  const clipId=`clip_${c.id}`;
                   return (
                     <g key={c.id} onClick={()=>setInspector(c)} style={{ cursor:"pointer" }}>
-                      <circle cx={p.x} cy={p.y} r={sel?22:16} fill={col} fillOpacity={sel?0.3:0.18} stroke={col} strokeWidth={sel?2:0.8} />
-                      <circle cx={p.x} cy={p.y} r={5} fill={STATUS_COLOR[c.status]||"#888"} stroke={col} strokeWidth={0.5} />
-                      <text x={p.x} y={p.y-20} textAnchor="middle" fontSize={10} fill={col} style={{ fontFamily:C.mono }}>{c.name}</text>
+                      <defs>
+                        <clipPath id={clipId}>
+                          <circle cx={p.x} cy={p.y} r={r} />
+                        </clipPath>
+                      </defs>
+                      <circle cx={p.x} cy={p.y} r={r} fill={col} fillOpacity={sel?0.3:0.18} stroke={col} strokeWidth={sel?2:0.8} />
+                      {c.image
+                        ? <image href={c.image} x={p.x-r} y={p.y-r} width={r*2} height={r*2} clipPath={`url(#${clipId})`} preserveAspectRatio="xMidYMid slice" />
+                        : <circle cx={p.x} cy={p.y} r={5} fill={STATUS_COLOR[c.status]||"#888"} stroke={col} strokeWidth={0.5} />
+                      }
+                      {c.image&&<circle cx={p.x} cy={p.y} r={r} fill="none" stroke={col} strokeWidth={sel?2:0.8} />}
+                      <circle cx={p.x+r*0.65} cy={p.y-r*0.65} r={4} fill={STATUS_COLOR[c.status]||"#888"} stroke="#060a12" strokeWidth={0.8} />
+                      <text x={p.x} y={p.y-r-5} textAnchor="middle" fontSize={10} fill={col} style={{ fontFamily:C.mono }}>{c.name}</text>
                     </g>
                   );
                 })}
@@ -1466,11 +1587,23 @@ export default function WorldSim() {
               STATUS_OPTS.forEach(s=>{ byStatus[s]=members.filter(c=>c.status===s).length; });
               return (
                 <div key={f.id} style={{ background:C.bg1, border:`1px solid ${f.color}44`,
-                  borderLeft:`4px solid ${f.color}`, borderRadius:8, padding:"14px 16px", marginBottom:12 }}>
+                  borderLeft:`4px solid ${f.color}`, borderRadius:8, overflow:"hidden", marginBottom:12 }}>
+                  {f.image&&(
+                    <div style={{ width:"100%", height:80, overflow:"hidden", position:"relative" }}>
+                      <img src={f.image} alt={f.name} style={{ width:"100%", height:"100%", objectFit:"cover" }} />
+                      <div style={{ position:"absolute", inset:0, background:"linear-gradient(to bottom, transparent 20%, rgba(12,18,32,0.88) 100%)" }} />
+                    </div>
+                  )}
+                  <div style={{ padding:"14px 16px" }}>
                   <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:10 }}>
-                    <div>
-                      <div style={{ fontSize:16, fontWeight:"bold", color:f.color }}>{f.name}</div>
-                      <div style={{ fontSize:11, color:C.textM, marginTop:2 }}>{f.desc||"—"}</div>
+                    <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+                      {!f.image&&<div style={{ width:36, height:36, borderRadius:"50%", background:`${f.color}22`,
+                        border:`2px solid ${f.color}44`, display:"flex", alignItems:"center", justifyContent:"center",
+                        fontSize:16 }}>⬟</div>}
+                      <div>
+                        <div style={{ fontSize:16, fontWeight:"bold", color:f.color }}>{f.name}</div>
+                        <div style={{ fontSize:11, color:C.textM, marginTop:2 }}>{f.desc||"—"}</div>
+                      </div>
                     </div>
                     <div style={{ textAlign:"right" }}>
                       <div style={{ fontSize:22, fontWeight:"bold", color:f.color }}>{members.length}</div>
@@ -1490,12 +1623,15 @@ export default function WorldSim() {
                     {members.map(c=>(
                       <span key={c.id} onClick={()=>{ setInspector(c); setTab("characters"); }}
                         style={{ fontSize:10, padding:"3px 8px", background:`${f.color}18`,
-                          color:f.color, border:`1px solid ${f.color}33`, borderRadius:4, cursor:"pointer" }}>
+                          color:f.color, border:`1px solid ${f.color}33`, borderRadius:4, cursor:"pointer",
+                          display:"flex", alignItems:"center", gap:5 }}>
+                        {c.image&&<img src={c.image} alt="" style={{ width:14, height:14, borderRadius:"50%", objectFit:"cover" }} />}
                         {c.name}
-                        <span style={{ marginLeft:4, color:STATUS_COLOR[c.status]||"#888", fontSize:8 }}>●</span>
+                        <span style={{ color:STATUS_COLOR[c.status]||"#888", fontSize:8 }}>●</span>
                       </span>
                     ))}
                     {members.length===0&&<span style={{ fontSize:10, color:C.textD }}>No members assigned.</span>}
+                  </div>
                   </div>
                 </div>
               );
@@ -1524,7 +1660,13 @@ export default function WorldSim() {
                   <div style={{ position:"absolute", left:-20, top:9, width:10, height:10, borderRadius:"50%",
                     background:e.hidden?"#ef4444":"#3b82f6", border:`1px solid ${C.border}` }} />
                   <div style={{ background:e.hidden?"#160a0a":C.bg1,
-                    border:`1px solid ${e.hidden?"#3f1515":C.border}`, borderRadius:6, padding:"9px 12px" }}>
+                    border:`1px solid ${e.hidden?"#3f1515":C.border}`, borderRadius:6, overflow:"hidden" }}>
+                    {e.image&&(
+                      <div style={{ width:"100%", height:60, overflow:"hidden" }}>
+                        <img src={e.image} alt="" style={{ width:"100%", height:"100%", objectFit:"cover" }} />
+                      </div>
+                    )}
+                    <div style={{ padding:"9px 12px" }}>
                     <div style={{ display:"flex", gap:8, alignItems:"center", marginBottom:4, flexWrap:"wrap" }}>
                       <span style={{ fontSize:10, color:"#3b82f6", fontWeight:"bold" }}>{e.year}</span>
                       <span style={{ fontSize:9, padding:"1px 5px", borderRadius:3,
@@ -1535,6 +1677,7 @@ export default function WorldSim() {
                       <button style={{ ...mBt, color:"#f87171" }} onClick={()=>uw(w=>({timeline:w.timeline.filter(t=>t.id!==e.id)}))}>✕</button>
                     </div>
                     <div style={{ fontSize:12, color:e.hidden?"#fca5a5":"#cbd5e1" }}>{e.text}</div>
+                    </div>
                   </div>
                 </div>
               ))}
