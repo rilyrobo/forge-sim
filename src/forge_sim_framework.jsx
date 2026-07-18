@@ -9,8 +9,31 @@ const BLANK_WORLD = {
   relations: [],
   timeline: [],
   secrets: [],
-  sessionNotes: []
+  sessionNotes: [],
+  map: null
 };
+
+// Default shape for world.map — created lazily the first time the Map tab is used.
+function blankMap() {
+  return {
+    image: "",
+    gridOn: true,
+    cols: 20,
+    rows: 14,
+    unitsPerCell: 10,
+    unitLabel: "miles",
+    gridColor: "#93c5fd",
+    gridOpacity: 0.35,
+    speeds: [
+      { id: genId(), label: "Walking Pace",  rate: 24, period: "day" },
+      { id: genId(), label: "Mounted",       rate: 48, period: "day" },
+      { id: genId(), label: "Forced March",  rate: 36, period: "day" },
+      { id: genId(), label: "Running",       rate: 8,  period: "hour" }
+    ],
+    // positions[charId] = [{ eventId, x, y }, ...] — x/y are 0..1 fractions of map width/height
+    positions: {}
+  };
+}
 
 // ─── DEFAULT FORGE UNITS WORLD ────────────────────────────────────────────────
 const DEFAULT_WORLD = {
@@ -425,7 +448,24 @@ const DEFAULT_WORLD = {
     { id:"s10", label:"The Infiltration Doctrine Document", status:"ARCHIVED", color:"#6366f1", order:9,
       text:"Brumli and Maela's written formal objection to the Infiltration Doctrine — filed in Year −2 — exists somewhere in Ironhoem's record archive. If found, it would prove that the expansion mandate was known, opposed, and deliberately obscured. Locating this document is a potential campaign objective." }
   ],
-  sessionNotes: []
+  sessionNotes: [],
+  map: {
+    image: "",
+    gridOn: true,
+    cols: 20,
+    rows: 14,
+    unitsPerCell: 10,
+    unitLabel: "miles",
+    gridColor: "#93c5fd",
+    gridOpacity: 0.35,
+    speeds: [
+      { id: "spd1", label: "Walking Pace",  rate: 24, period: "day" },
+      { id: "spd2", label: "Mounted",       rate: 48, period: "day" },
+      { id: "spd3", label: "Forced March",  rate: 36, period: "day" },
+      { id: "spd4", label: "Running",       rate: 8,  period: "hour" }
+    ],
+    positions: {}
+  }
 };
 
 // ─── UTILS ───────────────────────────────────────────────────────────────────
@@ -498,6 +538,43 @@ function arrayMove(arr, from, to) {
   const [item] = out.splice(from, 1);
   out.splice(to, 0, item);
   return out;
+}
+
+// ─── MAP MATH ────────────────────────────────────────────────────────────────
+// Positions are stored as fractions (0..1) of the map's width/height. Distance
+// is computed against the grid's real-world scale (cols/rows × unitsPerCell),
+// so DMs can size the grid to match their map image and get sane distances.
+function mapDistance(map, a, b) {
+  if(!map||!a||!b) return 0;
+  const dxUnits = (b.x-a.x) * (map.cols||1) * (map.unitsPerCell||1);
+  const dyUnits = (b.y-a.y) * (map.rows||1) * (map.unitsPerCell||1);
+  return Math.sqrt(dxUnits*dxUnits + dyUnits*dyUnits);
+}
+function formatDuration(hours) {
+  if(!isFinite(hours)||hours<=0) return "—";
+  if(hours < 1) return `${Math.round(hours*60)} min`;
+  if(hours < 24) return `${hours.toFixed(1)} hr`;
+  const days = hours/24;
+  if(days < 14) return `${days.toFixed(1)} day${days>=2?"s":""}`;
+  return `${(days/7).toFixed(1)} weeks`;
+}
+function travelTime(distanceUnits, speed) {
+  if(!speed||!speed.rate) return Infinity;
+  const perHour = speed.period==="day" ? speed.rate/24 : speed.rate;
+  return distanceUnits / perHour; // hours
+}
+// Find the most recent placed position for a character at or before a given
+// timeline order index (sparse "carry forward" placement).
+function posAtOrBefore(map, charId, eventOrderList, currentOrder) {
+  const track = map?.positions?.[charId];
+  if(!track||!track.length) return null;
+  let best = null;
+  for(const p of track) {
+    const evOrder = eventOrderList[p.eventId];
+    if(evOrder===undefined) continue;
+    if(evOrder<=currentOrder && (!best || eventOrderList[best.eventId]<evOrder)) best = p;
+  }
+  return best;
 }
 
 // ─── STYLE TOKENS ────────────────────────────────────────────────────────────
@@ -1187,12 +1264,275 @@ function AddSecretForm({ onSubmit, onCancel }) {
   );
 }
 
+// ─── MAP SETTINGS PANEL ───────────────────────────────────────────────────────
+function MapSettings({ map, onChange, onClose }) {
+  const [d, setD] = useState({...map, speeds:map.speeds.map(s=>({...s}))});
+  const set = k => e => setD(p=>({...p,[k]:e.target.value}));
+  const setNum = k => e => setD(p=>({...p,[k]:Number(e.target.value)||0}));
+  const setSpeed = (id,patch) => setD(p=>({...p,speeds:p.speeds.map(s=>s.id===id?{...s,...patch}:s)}));
+
+  return (
+    <Modal title="Map Settings" onClose={onClose} wide>
+      <div style={{ marginBottom:14 }}>
+        <ImageUploader value={d.image||""} onChange={v=>setD(p=>({...p,image:v}))} size="lg" label="Background Map Image" />
+      </div>
+      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:"0 12px" }}>
+        <FR label="Grid Columns"><input type="number" min={1} value={d.cols} onChange={setNum("cols")} style={iSt} /></FR>
+        <FR label="Grid Rows"><input type="number" min={1} value={d.rows} onChange={setNum("rows")} style={iSt} /></FR>
+        <FR label="Units per Cell"><input type="number" min={0.1} step={0.1} value={d.unitsPerCell} onChange={setNum("unitsPerCell")} style={iSt} /></FR>
+      </div>
+      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:"0 12px" }}>
+        <FR label="Unit Label"><input value={d.unitLabel} onChange={set("unitLabel")} style={iSt} placeholder="miles, km, leagues..." /></FR>
+        <FR label="Grid Color">
+          <input type="color" value={d.gridColor} onChange={set("gridColor")} style={{ width:32,height:32,border:"none",background:"none",cursor:"pointer" }} />
+        </FR>
+        <FR label="Grid Visible">
+          <label style={{ display:"flex", alignItems:"center", gap:6, fontSize:11, color:C.textM, cursor:"pointer", marginTop:6 }}>
+            <input type="checkbox" checked={d.gridOn} onChange={e=>setD(p=>({...p,gridOn:e.target.checked}))} />
+            Show grid overlay
+          </label>
+        </FR>
+      </div>
+
+      <SH s={{ marginTop:16 }}>Movement Speeds (used by the travel calculator)</SH>
+      <div style={{ marginBottom:10 }}>
+        {d.speeds.map(s=>(
+          <div key={s.id} style={{ display:"flex", gap:8, alignItems:"center", marginBottom:6,
+            background:C.bg1, border:`1px solid ${C.border}`, borderRadius:5, padding:"7px 10px" }}>
+            <input value={s.label} onChange={e=>setSpeed(s.id,{label:e.target.value})} style={{ ...iSt, width:150 }} placeholder="Label" />
+            <input type="number" min={0} value={s.rate} onChange={e=>setSpeed(s.id,{rate:Number(e.target.value)||0})} style={{ ...iSt, width:80 }} />
+            <select value={s.period} onChange={e=>setSpeed(s.id,{period:e.target.value})} style={sSt}>
+              <option value="hour">{d.unitLabel||"units"} / hour</option>
+              <option value="day">{d.unitLabel||"units"} / day</option>
+            </select>
+            <button onClick={()=>setD(p=>({...p,speeds:p.speeds.filter(x=>x.id!==s.id)}))} style={{ ...mBt, color:"#f87171" }}>✕</button>
+          </div>
+        ))}
+        <button style={{ ...bSt(C.bg3), fontSize:10 }} onClick={()=>setD(p=>({...p,speeds:[...p.speeds,{id:genId(),label:"New Speed",rate:20,period:"day"}]}))}>+ Add Speed</button>
+      </div>
+
+      <div style={{ display:"flex", gap:8, marginTop:8 }}>
+        <button style={bSt("#14532d")} onClick={()=>onChange(d)}>Save Map Settings</button>
+        <button style={bSt(C.bg3)} onClick={onClose}>Discard</button>
+      </div>
+    </Modal>
+  );
+}
+
+// ─── MAP TAB ──────────────────────────────────────────────────────────────────
+function MapTab({ world, uw, sortedTimeline, secretsOn }) {
+  const map = world.map || blankMap();
+  const ensureMap = () => { if(!world.map) uw(()=>({map:blankMap()})); };
+  useEffect(ensureMap, []); // create map state lazily on first visit
+
+  const visibleTimeline = useMemo(()=>sortedTimeline.filter(e=>secretsOn||!e.hidden), [sortedTimeline,secretsOn]);
+  const [evIdx, setEvIdx] = useState(visibleTimeline.length-1<0?0:visibleTimeline.length-1);
+  useEffect(()=>{ if(evIdx>=visibleTimeline.length) setEvIdx(Math.max(0,visibleTimeline.length-1)); },[visibleTimeline.length]);
+  const currentEvent = visibleTimeline[evIdx] || null;
+
+  const eventOrderList = useMemo(()=>{
+    const m={}; sortedTimeline.forEach(e=>{ m[e.id]=e.order??0; }); return m;
+  },[sortedTimeline]);
+
+  const [placingChar, setPlacingChar] = useState("");
+  const [showSettings, setShowSettings] = useState(false);
+  const [calcA, setCalcA] = useState("");
+  const [calcB, setCalcB] = useState("");
+  const mapRef = useRef(null);
+
+  const updateMap = patch => uw(w=>({map:{...(w.map||blankMap()),...patch}}));
+
+  // Resolve every character's position at the current scrub point.
+  const snapshot = useMemo(()=>{
+    if(!currentEvent) return {};
+    const curOrder = eventOrderList[currentEvent.id] ?? 0;
+    const out = {};
+    world.characters.forEach(c=>{
+      const p = posAtOrBefore(map, c.id, eventOrderList, curOrder);
+      if(p) out[c.id] = p;
+    });
+    return out;
+  },[map, world.characters, currentEvent, eventOrderList]);
+
+  const placeAt = (fracX, fracY) => {
+    if(!placingChar || !currentEvent) return;
+    const track = (map.positions[placingChar]||[]).filter(p=>p.eventId!==currentEvent.id);
+    track.push({ eventId: currentEvent.id, x: fracX, y: fracY });
+    updateMap({ positions: { ...map.positions, [placingChar]: track } });
+  };
+
+  const clearPinHere = () => {
+    if(!placingChar || !currentEvent) return;
+    const track = (map.positions[placingChar]||[]).filter(p=>p.eventId!==currentEvent.id);
+    updateMap({ positions: { ...map.positions, [placingChar]: track } });
+  };
+
+  const onMapClick = e => {
+    if(!placingChar) return;
+    const rect = mapRef.current.getBoundingClientRect();
+    const fx = (e.clientX-rect.left)/rect.width;
+    const fy = (e.clientY-rect.top)/rect.height;
+    placeAt(Math.max(0,Math.min(1,fx)), Math.max(0,Math.min(1,fy)));
+  };
+
+  const charById = id => world.characters.find(c=>c.id==id);
+  const posA = calcA ? snapshot[calcA] : null;
+  const posB = calcB ? snapshot[calcB] : null;
+  const distUnits = posA&&posB ? mapDistance(map, posA, posB) : null;
+
+  return (
+    <div>
+      <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:12, flexWrap:"wrap" }}>
+        <SH s={{ margin:0 }}>Map</SH>
+        <div style={{ flex:1 }} />
+        <button style={bSt(C.bg3)} onClick={()=>setShowSettings(true)}>⚙ Map Settings</button>
+      </div>
+
+      {!map.image && (
+        <div style={{ background:C.bg1, border:`1px solid ${C.border}`, borderRadius:8, padding:"40px 20px",
+          textAlign:"center", color:C.textD, fontSize:12, marginBottom:14 }}>
+          <div style={{ fontSize:24, marginBottom:10 }}>🗺</div>
+          <div style={{ marginBottom:10 }}>No background map uploaded yet.</div>
+          <button style={bSt("#14532d")} onClick={()=>setShowSettings(true)}>Upload Map Image</button>
+        </div>
+      )}
+
+      {map.image && (
+        <>
+          {/* Timeline scrubber */}
+          <div style={{ background:C.bg1, border:`1px solid ${C.border}`, borderRadius:8, padding:"10px 14px", marginBottom:12 }}>
+            {visibleTimeline.length===0 ? (
+              <div style={{ fontSize:11, color:C.textD }}>No timeline events yet — add some in the Timeline tab to scrub through character positions.</div>
+            ) : (
+              <>
+                <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:6, gap:8, flexWrap:"wrap" }}>
+                  <div style={{ fontSize:12, color:"#93c5fd", fontWeight:"bold" }}>
+                    {currentEvent?.year} <span style={{ color:C.textD, fontWeight:"normal" }}>· {currentEvent?.label}</span>
+                  </div>
+                  <div style={{ display:"flex", gap:5 }}>
+                    <button style={mBt} onClick={()=>setEvIdx(i=>Math.max(0,i-1))}>◀ Prev</button>
+                    <button style={mBt} onClick={()=>setEvIdx(i=>Math.min(visibleTimeline.length-1,i+1))}>Next ▶</button>
+                  </div>
+                </div>
+                <input type="range" min={0} max={Math.max(0,visibleTimeline.length-1)} value={evIdx}
+                  onChange={e=>setEvIdx(Number(e.target.value))} style={{ width:"100%" }} />
+                {currentEvent?.text && (
+                  <div style={{ fontSize:11, color:C.textM, marginTop:6, lineHeight:1.5 }}>{currentEvent.text}</div>
+                )}
+              </>
+            )}
+          </div>
+
+          {/* Placement toolbar */}
+          <div style={{ display:"flex", gap:8, alignItems:"center", marginBottom:10, flexWrap:"wrap" }}>
+            <select value={placingChar} onChange={e=>setPlacingChar(e.target.value)} style={sSt}>
+              <option value="">— select character to place —</option>
+              {world.characters.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
+            {placingChar && currentEvent && (
+              <>
+                <span style={{ fontSize:10, color:C.textD }}>Click the map to place {charById(placingChar)?.name} at this event</span>
+                <button style={{ ...mBt, color:"#f87171" }} onClick={clearPinHere}>Clear pin here</button>
+              </>
+            )}
+          </div>
+
+          {/* Map canvas */}
+          <div ref={mapRef} onClick={onMapClick} style={{ position:"relative", width:"100%",
+            aspectRatio:"16/10", background:"#060a12", border:`1px solid ${C.border}`, borderRadius:8,
+            overflow:"hidden", cursor:placingChar?"crosshair":"default" }}>
+            <img src={map.image} alt="" style={{ position:"absolute", inset:0, width:"100%", height:"100%", objectFit:"cover", pointerEvents:"none" }} />
+            <svg viewBox="0 0 1000 625" preserveAspectRatio="none" style={{ position:"absolute", inset:0, width:"100%", height:"100%", pointerEvents:"none" }}>
+              {map.gridOn && Array.from({length:(map.cols||1)+1}).map((_,i)=>(
+                <line key={"gx"+i} x1={i*(1000/(map.cols||1))} y1={0} x2={i*(1000/(map.cols||1))} y2={625}
+                  stroke={map.gridColor} strokeWidth={1} opacity={map.gridOpacity} />
+              ))}
+              {map.gridOn && Array.from({length:(map.rows||1)+1}).map((_,i)=>(
+                <line key={"gy"+i} x1={0} y1={i*(625/(map.rows||1))} x2={1000} y2={i*(625/(map.rows||1))}
+                  stroke={map.gridColor} strokeWidth={1} opacity={map.gridOpacity} />
+              ))}
+              {posA&&posB&&(
+                <line x1={posA.x*1000} y1={posA.y*625} x2={posB.x*1000} y2={posB.y*625}
+                  stroke="#fbbf24" strokeWidth={2} strokeDasharray="6 4" opacity={0.85} />
+              )}
+              {world.characters.map(c=>{
+                const p = snapshot[c.id]; if(!p) return null;
+                const col = fCol(world.factions, c.faction);
+                const hi = c.id==calcA || c.id==calcB;
+                return (
+                  <g key={c.id} style={{ pointerEvents:"none" }}>
+                    <circle cx={p.x*1000} cy={p.y*625} r={hi?12:9} fill={col} fillOpacity={0.85} stroke="#060a12" strokeWidth={2} />
+                    <text x={p.x*1000} y={p.y*625-14} textAnchor="middle" fontSize={13} fill="#f8fafc"
+                      stroke="#060a12" strokeWidth={3} paintOrder="stroke" style={{ fontFamily:C.mono, fontWeight:"bold" }}>{c.name}</text>
+                  </g>
+                );
+              })}
+            </svg>
+          </div>
+
+          {/* Legend of who has no pin yet */}
+          <div style={{ fontSize:9, color:C.textD, marginTop:8 }}>
+            {Object.keys(snapshot).length}/{world.characters.length} characters placed as of this event ·
+            {" "}{map.cols}×{map.rows} grid · {map.unitsPerCell} {map.unitLabel}/cell
+          </div>
+
+          {/* Travel calculator */}
+          <div style={{ marginTop:18, background:C.bg1, border:`1px solid ${C.border}`, borderRadius:8, padding:"14px 16px" }}>
+            <SH s={{ marginBottom:10 }}>Travel Time Calculator</SH>
+            <div style={{ display:"flex", gap:10, flexWrap:"wrap", alignItems:"flex-end", marginBottom:10 }}>
+              <FR label="From">
+                <select value={calcA} onChange={e=>setCalcA(e.target.value)} style={sSt}>
+                  <option value="">— select —</option>
+                  {world.characters.filter(c=>snapshot[c.id]).map(c=><option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
+              </FR>
+              <FR label="To">
+                <select value={calcB} onChange={e=>setCalcB(e.target.value)} style={sSt}>
+                  <option value="">— select —</option>
+                  {world.characters.filter(c=>snapshot[c.id]).map(c=><option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
+              </FR>
+              {distUnits!==null&&(
+                <div style={{ fontSize:12, color:"#93c5fd" }}>
+                  Distance: <strong>{distUnits.toFixed(1)} {map.unitLabel}</strong>
+                </div>
+              )}
+            </div>
+            {distUnits===null ? (
+              <div style={{ fontSize:11, color:C.textD }}>
+                Pick two characters who are placed on the map at this timeline event to calculate travel time between them.
+              </div>
+            ) : (
+              <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(150px,1fr))", gap:8 }}>
+                {map.speeds.map(s=>(
+                  <div key={s.id} style={{ background:C.bg0, border:`1px solid ${C.border}`, borderRadius:6, padding:"8px 10px" }}>
+                    <div style={{ fontSize:9, color:C.textD, textTransform:"uppercase", letterSpacing:"0.06em", marginBottom:3 }}>{s.label}</div>
+                    <div style={{ fontSize:15, fontWeight:"bold", color:"#f8fafc" }}>{formatDuration(travelTime(distUnits,s))}</div>
+                    <div style={{ fontSize:9, color:C.textD, marginTop:2 }}>{s.rate} {map.unitLabel}/{s.period}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </>
+      )}
+
+      {showSettings && (
+        <MapSettings map={map}
+          onChange={d=>{ updateMap(d); setShowSettings(false); }}
+          onClose={()=>setShowSettings(false)} />
+      )}
+    </div>
+  );
+}
+
 // ─── MAIN APP ─────────────────────────────────────────────────────────────────
 const TABS = [
   { id:"overview",   label:"⬡ Overview"    },
   { id:"network",    label:"◎ Network"     },
   { id:"characters", label:"◈ Characters"  },
   { id:"factions",   label:"⬟ Factions"    },
+  { id:"map",        label:"🗺 Map"        },
   { id:"timeline",   label:"⊡ Timeline"    },
   { id:"secrets",    label:"⊛ Secrets"     },
   { id:"session",    label:"◉ Session"     },
@@ -1637,6 +1977,11 @@ export default function WorldSim() {
               );
             })}
           </div>
+        )}
+
+        {/* ══ MAP ══ */}
+        {tab==="map"&&(
+          <MapTab world={world} uw={uw} sortedTimeline={sortedTimeline} secretsOn={secretsOn} />
         )}
 
         {/* ══ TIMELINE ══ */}
